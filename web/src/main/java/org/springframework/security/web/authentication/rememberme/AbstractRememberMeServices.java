@@ -341,13 +341,35 @@ public abstract class AbstractRememberMeServices implements RememberMeServices,
 	/**
 	 * Sets a "cancel cookie" (with maxAge = 0) on the response to disable persistent
 	 * logins.
+	 * 
+	 * By default a secure cookie will be used if the connection is secure. You can set
+	 * the {@code useSecureCookie} property to {@code false} to override this. If you set
+	 * it to {@code true}, the cookie will always be flagged as secure. If Servlet 3.0 is
+	 * used, the cookie will be marked as HttpOnly.
+	 * 
+	 * @param request the request
+	 * @param response the response to add the cookie to.
 	 */
 	protected void cancelCookie(HttpServletRequest request, HttpServletResponse response) {
 		logger.debug("Cancelling cookie");
 		Cookie cookie = new Cookie(cookieName, null);
 		cookie.setMaxAge(0);
 		cookie.setPath(getCookiePath(request));
+		
+		if (useSecureCookie == null) {
+			cookie.setSecure(request.isSecure());
+		}
+		else {
+			cookie.setSecure(useSecureCookie);
+		}
 
+		if (setHttpOnlyMethod != null) {
+			ReflectionUtils.invokeMethod(setHttpOnlyMethod, cookie, Boolean.TRUE);
+		}
+		else if (logger.isDebugEnabled()) {
+			logger.debug("Note: Cookie will not be marked as HttpOnly because you are not using Servlet 3.0 (Cookie#setHttpOnly(boolean) was not found).");
+		}
+		
 		response.addCookie(cookie);
 	}
 
